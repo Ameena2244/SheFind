@@ -32,9 +32,3 @@ Built for the AWS User Group Madurai — March Skill Sprint: Build for Her 💜
 2. Open `shefind.html` in any browser
 3. That's it — no installation needed!
 
-## Built By
-Masthani Ameena
-AWS UG Madurai Skill Sprint — March 2026
-
-## Tags
-#BuildForHer #AWSUGMadurai #SkillSprint #WomenInTech #Madurai

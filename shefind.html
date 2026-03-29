@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SheFind - Women's Safe Toilet Finder</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8fafc;
+            color: #1f2937;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #7C3AED, #a855f7);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .header p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .lang-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        
+        .search-container {
+            padding: 1rem;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box:focus {
+            border-color: #7C3AED;
+        }
+        
+        .map-container {
+            height: 60vh;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-around;
+            padding: 0.75rem 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-item.active {
+            background: #f3f4f6;
+            color: #7C3AED;
+        }
+        
+        .nav-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .popup-content {
+            max-width: 300px;
+        }
+        
+        .toilet-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .rating-stars {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        
+        .stars {
+            color: #fbbf24;
+            margin-right: 0.5rem;
+        }
+        
+        .rating-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .scores {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .score-item {
+            text-align: center;
+            padding: 0.5rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        
+        .score-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #7C3AED;
+        }
+        
+        .score-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+        
+        .facilities {
+            margin-bottom: 0.75rem;
+        }
+        
+        .facilities-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+        
+        .facility-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+        
+        .facility-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .facility-yes {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .facility-no {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+        
+        .safety-badge {
+            padding: 0.5rem;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .safety-safe {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .safety-caution {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .safety-avoid {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+        
+        .review-info {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+        
+        .ai-tip {
+            background: linear-gradient(135deg, #7C3AED, #a855f7);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            padding: 1rem;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 400px;
+            margin: 2rem auto;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 1.5rem 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus {
+            border-color: #7C3AED;
+        }
+        
+        .star-rating {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .star {
+            font-size: 1.5rem;
+            color: #d1d5db;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .star.active {
+            color: #fbbf24;
+        }
+        
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .checkbox-item input {
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: #7C3AED;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background: #6d28d9;
+        }
+        
+        .add-toilet-btn {
+            position: fixed;
+            bottom: 80px;
+            right: 1rem;
+            width: 56px;
+            height: 56px;
+            background: #7C3AED;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+            z-index: 100;
+        }
+        
+        .success-message {
+            background: #dcfce7;
+            color: #166534;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.25rem;
+            }
+            
+            .lang-toggle {
+                font-size: 0.75rem;
+                padding: 0.375rem 0.75rem;
+            }
+            
+            .modal-content {
+                margin: 1rem auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="lang-toggle" onclick="toggleLanguage()">தமிழ்</button>
+        <h1 data-en="SheFind" data-ta="ஷீஃபைண்ட்">SheFind</h1>
+        <p data-en="Find clean. Stay safe. Go confidently." data-ta="சுத்தமானதைக் கண்டுபிடி. பாதுகாப்பாக இரு. நம்பிக்கையுடன் செல்.">Find clean. Stay safe. Go confidently.</p>
+    </div>
+
+    <div class="search-container">
+        <input type="text" class="search-box" id="searchBox" 
+               data-en="Search by area or landmark..." 
+               data-ta="பகுதி அல்லது அடையாளத்தால் தேடு..."
+               placeholder="Search by area or landmark...">
+    </div>
+
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="showTab('map')">
+            <div class="nav-icon">🗺️</div>
+            <div class="nav-label" data-en="Map" data-ta="வரைபடம்">Map</div>
+        </div>
+        <div class="nav-item" onclick="showTab('rate')">
+            <div class="nav-icon">⭐</div>
+            <div class="nav-label" data-en="Rate" data-ta="மதிப்பீடு">Rate</div>
+        </div>
+        <div class="nav-item" onclick="showTab('community')">
+            <div class="nav-icon">👥</div>
+            <div class="nav-label" data-en="Community" data-ta="சமூகம்">Community</div>
+        </div>
+    </div>
+
+    <button class="add-toilet-btn" onclick="openAddToiletModal()">+</button>
+
+    <!-- Rate Toilet Modal -->
+    <div id="rateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" data-en="Rate this toilet" data-ta="இந்த கழிவறையை மதிப்பிடு">Rate this toilet</h2>
+                <button class="close-btn" onclick="closeModal('rateModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="rateSuccess" class="success-message hidden">
+                    <span data-en="Thank you! You just helped a woman in Madurai." 
+                          data-ta="நன்றி! நீங்கள் மதுரையில் ஒரு பெண்ணுக்கு உதவினீர்கள்.">
+                        Thank you! You just helped a woman in Madurai.
+                    </span>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" data-en="Cleanliness Rating" data-ta="சுத்தம் மதிப்பீடு">Cleanliness Rating</label>
+                    <div class="star-rating" id="cleanlinessRating">
+                        <span class="star" data-rating="1">★</span>
+                        <span class="star" data-rating="2">★</span>
+                        <span class="star" data-rating="3">★</span>
+                        <span class="star" data-rating="4">★</span>
+                        <span class="star" data-rating="5">★</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" data-en="Safety Rating" data-ta="பாதுகாப்பு மதிப்பீடு">Safety Rating</label>
+                    <div class="star-rating" id="safetyRating">
+                        <span class="star" data-rating="1">★</span>
+                        <span class="star" data-rating="2">★</span>
+                        <span class="star" data-rating="3">★</span>
+                        <span class="star" data-rating="4">★</span>
+                        <span class="star" data-rating="5">★</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" data-en="Available Facilities" data-ta="கிடைக்கும் வசதிகள்">Available Facilities</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="runningWater">
+                            <label for="runningWater" data-en="Running water" data-ta="ஓடும் நீர்">Running water</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="lights">
+                            <label for="lights" data-en="Lights" data-ta="விளக்குகள்">Lights</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="doorLock">
+                            <label for="doorLock" data-en="Door lock" data-ta="கதவு பூட்டு">Door lock</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="sanitaryPads">
+                            <label for="sanitaryPads" data-en="Sanitary pads" data-ta="சானிட்டரி பேட்">Sanitary pads</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="attendant">
+                            <label for="attendant" data-en="Attendant" data-ta="பராமரிப்பாளர்">Attendant</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="wheelchair">
+                            <label for="wheelchair" data-en="Wheelchair access" data-ta="சக்கர நாற்காலி அணுகல்">Wheelchair access</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" data-en="Comments (Optional)" data-ta="கருத்துகள் (விருப்பம்)">Comments (Optional)</label>
+                    <textarea class="form-input" rows="3" id="rateComments" 
+                              data-en="Share your experience..." 
+                              data-ta="உங்கள் அனுபவத்தைப் பகிரவும்..."
+                              placeholder="Share your experience..."></textarea>
+                </div>
+                
+                <button class="btn" onclick="submitRating()" data-en="Submit Rating" data-ta="மதிப்பீட்டை சமர்பிக்கவும்">Submit Rating</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Toilet Modal -->
+    <div id="addToiletModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" data-en="Add New Toilet" data-ta="புதிய கழிவறையைச் சேர்க்கவும்">Add New Toilet</h2>
+                <button class="close-btn" onclick="closeModal('addToiletModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="addSuccess" class="success-message hidden">
+                    <span data-en="Your report will help women in Madurai. Thank you!" 
+                          data-ta="உங்கள் அறிக்கை மதுரையில் பெண்களுக்கு உதவும். நன்றி!">
+                        Your report will help women in Madurai. Thank you!
+                    </span>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" data-en="Toilet Name / Landmark" data-ta="கழிவறை பெயர் / அடையாளம்">Toilet Name / Landmark</label>
+                    <input type="text" class="form-input" id="toiletName" 
+                           data-en="Enter toilet name or nearby landmark" 
+                           data-ta="கழிவறை பெயர் அல்லது அருகிலுள்ள அடையாளத்தை உள்ளிடவும்"
+                           placeholder="Enter toilet name or nearby landmark">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" data-en="Area" data-ta="பகுதி">Area</label>
+                    <input type="text" class="form-input" id="toiletArea" 
+                           data-en="Enter area name" 
+                           data-ta="பகுதி பெயரை உள்ளிடவும்"
+                           placeholder="Enter area name">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" data-en="Basic Facilities" data-ta="அடிப்படை வசதிகள்">Basic Facilities</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="addRunningWater">
+                            <label for="addRunningWater" data-en="Running water" data-ta="ஓடும் நீர்">Running water</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="addLights">
+                            <label for="addLights" data-en="Lights" data-ta="விளக்குகள்">Lights</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="addDoorLock">
+                            <label for="addDoorLock" data-en="Door lock" data-ta="கதவு பூட்டு">Door lock</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="addAttendant">
+                            <label for="addAttendant" data-en="Attendant" data-ta="பராமரிப்பாளர்">Attendant</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="submitNewToilet()" data-en="Add Toilet" data-ta="கழிவறையைச் சேர்க்கவும்">Add Toilet</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let markers = [];
+        let currentLanguage = 'en';
+        let currentTab = 'map';
+        let selectedToiletId = null;
+        
+        // Toilet data for Madurai
+        const toiletData = [
+            {
+                id: 1,
+                name: "Periyar Bus Stand",
+                area: "Central Madurai",
+                lat: 9.9195,
+                lng: 78.1193,
+                rating: 3.2,
+                cleanliness: 3.0,
+                safety: 3.4,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: true,
+                    wheelchair: false
+                },
+                reviews: 28,
+                lastReviewed: "2 days ago"
+            },
+            {
+                id: 2,
+                name: "Mattuthavani Bus Terminal",
+                area: "Mattuthavani",
+                lat: 9.8847,
+                lng: 78.0867,
+                rating: 4.1,
+                cleanliness: 4.2,
+                safety: 4.0,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: true,
+                    attendant: true,
+                    wheelchair: true
+                },
+                reviews: 45,
+                lastReviewed: "1 day ago"
+            },
+            {
+                id: 3,
+                name: "Madurai Railway Junction",
+                area: "Railway Station",
+                lat: 9.9258,
+                lng: 78.1198,
+                rating: 3.8,
+                cleanliness: 3.9,
+                safety: 3.7,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: false,
+                    attendant: true,
+                    wheelchair: false
+                },
+                reviews: 67,
+                lastReviewed: "3 hours ago"
+            },
+            {
+                id: 4,
+                name: "Madurai Airport",
+                area: "Airport",
+                lat: 9.8349,
+                lng: 78.0934,
+                rating: 4.5,
+                cleanliness: 4.6,
+                safety: 4.4,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: true,
+                    attendant: true,
+                    wheelchair: true
+                },
+                reviews: 89,
+                lastReviewed: "5 hours ago"
+            },
+            {
+                id: 5,
+                name: "Arappalayam Bus Stop",
+                area: "Arappalayam",
+                lat: 9.9456,
+                lng: 78.1567,
+                rating: 2.4,
+                cleanliness: 2.2,
+                safety: 2.6,
+                facilities: {
+                    runningWater: false,
+                    lights: false,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 15,
+                lastReviewed: "1 week ago"
+            }
+            ,
+            {
+                id: 6,
+                name: "Meenakshi Amman Temple East Gate",
+                area: "Temple Area",
+                lat: 9.9195,
+                lng: 78.1198,
+                rating: 4.3,
+                cleanliness: 4.4,
+                safety: 4.2,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: false,
+                    attendant: true,
+                    wheelchair: false
+                },
+                reviews: 156,
+                lastReviewed: "6 hours ago"
+            },
+            {
+                id: 7,
+                name: "Meenakshi Amman Temple North Gate",
+                area: "Temple Area",
+                lat: 9.9205,
+                lng: 78.1188,
+                rating: 4.0,
+                cleanliness: 4.1,
+                safety: 3.9,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: false,
+                    attendant: true,
+                    wheelchair: false
+                },
+                reviews: 134,
+                lastReviewed: "4 hours ago"
+            },
+            {
+                id: 8,
+                name: "Thiruparankundram Murugan Temple",
+                area: "Thiruparankundram",
+                lat: 9.8687,
+                lng: 78.0707,
+                rating: 3.5,
+                cleanliness: 3.6,
+                safety: 3.4,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: true,
+                    wheelchair: false
+                },
+                reviews: 42,
+                lastReviewed: "2 days ago"
+            },
+            {
+                id: 9,
+                name: "Pazhamudircholai Temple",
+                area: "Pazhamudircholai",
+                lat: 9.8456,
+                lng: 78.0234,
+                rating: 2.8,
+                cleanliness: 2.9,
+                safety: 2.7,
+                facilities: {
+                    runningWater: false,
+                    lights: true,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 23,
+                lastReviewed: "5 days ago"
+            },
+            {
+                id: 10,
+                name: "Koodal Azhagar Temple",
+                area: "Town Hall",
+                lat: 9.9167,
+                lng: 78.1167,
+                rating: 3.1,
+                cleanliness: 3.2,
+                safety: 3.0,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 31,
+                lastReviewed: "3 days ago"
+            }
+            ,
+            {
+                id: 11,
+                name: "Anna Nagar Vegetable Market",
+                area: "Anna Nagar",
+                lat: 9.9345,
+                lng: 78.1456,
+                rating: 2.2,
+                cleanliness: 2.0,
+                safety: 2.4,
+                facilities: {
+                    runningWater: false,
+                    lights: false,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 18,
+                lastReviewed: "1 week ago"
+            },
+            {
+                id: 12,
+                name: "Nethaji Textile Market",
+                area: "Nethaji Road",
+                lat: 9.9123,
+                lng: 78.1234,
+                rating: 2.9,
+                cleanliness: 3.0,
+                safety: 2.8,
+                facilities: {
+                    runningWater: true,
+                    lights: false,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 25,
+                lastReviewed: "4 days ago"
+            },
+            {
+                id: 13,
+                name: "Town Hall Road Market",
+                area: "Town Hall",
+                lat: 9.9178,
+                lng: 78.1189,
+                rating: 2.5,
+                cleanliness: 2.6,
+                safety: 2.4,
+                facilities: {
+                    runningWater: false,
+                    lights: true,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 19,
+                lastReviewed: "6 days ago"
+            },
+            {
+                id: 14,
+                name: "Pudhu Mandapam Market",
+                area: "Pudhu Mandapam",
+                lat: 9.9189,
+                lng: 78.1201,
+                rating: 3.4,
+                cleanliness: 3.5,
+                safety: 3.3,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: false,
+                    attendant: true,
+                    wheelchair: false
+                },
+                reviews: 38,
+                lastReviewed: "1 day ago"
+            },
+            {
+                id: 15,
+                name: "Bypass Road Super Market",
+                area: "Bypass Road",
+                lat: 9.9567,
+                lng: 78.1678,
+                rating: 3.7,
+                cleanliness: 3.8,
+                safety: 3.6,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: true,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 52,
+                lastReviewed: "8 hours ago"
+            }
+            ,
+            {
+                id: 16,
+                name: "Rajaji Government Hospital",
+                area: "Hospital Area",
+                lat: 9.9234,
+                lng: 78.1345,
+                rating: 3.9,
+                cleanliness: 4.0,
+                safety: 3.8,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: true,
+                    attendant: true,
+                    wheelchair: true
+                },
+                reviews: 78,
+                lastReviewed: "2 hours ago"
+            },
+            {
+                id: 17,
+                name: "Achampathu Government Hospital",
+                area: "Achampathu",
+                lat: 9.8945,
+                lng: 78.0987,
+                rating: 4.2,
+                cleanliness: 4.3,
+                safety: 4.1,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: true,
+                    attendant: true,
+                    wheelchair: true
+                },
+                reviews: 65,
+                lastReviewed: "1 hour ago"
+            },
+            {
+                id: 18,
+                name: "Madurai Medical College",
+                area: "Medical College",
+                lat: 9.9123,
+                lng: 78.1456,
+                rating: 3.6,
+                cleanliness: 3.7,
+                safety: 3.5,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: false,
+                    attendant: true,
+                    wheelchair: false
+                },
+                reviews: 43,
+                lastReviewed: "5 hours ago"
+            },
+            {
+                id: 19,
+                name: "Collectorate Office Madurai",
+                area: "Collectorate",
+                lat: 9.9278,
+                lng: 78.1234,
+                rating: 4.0,
+                cleanliness: 4.1,
+                safety: 3.9,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: true,
+                    attendant: true,
+                    wheelchair: true
+                },
+                reviews: 56,
+                lastReviewed: "3 hours ago"
+            },
+            {
+                id: 20,
+                name: "District Court Madurai",
+                area: "Court Area",
+                lat: 9.9189,
+                lng: 78.1289,
+                rating: 3.3,
+                cleanliness: 3.4,
+                safety: 3.2,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: false,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 34,
+                lastReviewed: "1 day ago"
+            }
+            ,
+            {
+                id: 21,
+                name: "Vandiyur Mariamman Teppakulam",
+                area: "Vandiyur",
+                lat: 9.9067,
+                lng: 78.1345,
+                rating: 3.8,
+                cleanliness: 3.9,
+                safety: 3.7,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: true,
+                    wheelchair: false
+                },
+                reviews: 47,
+                lastReviewed: "6 hours ago"
+            },
+            {
+                id: 22,
+                name: "Gandhi Museum Ground",
+                area: "Gandhi Museum",
+                lat: 9.9345,
+                lng: 78.1123,
+                rating: 4.1,
+                cleanliness: 4.2,
+                safety: 4.0,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: true,
+                    sanitaryPads: true,
+                    attendant: true,
+                    wheelchair: false
+                },
+                reviews: 61,
+                lastReviewed: "4 hours ago"
+            },
+            {
+                id: 23,
+                name: "Krishnaraj Park KK Nagar",
+                area: "KK Nagar",
+                lat: 9.9456,
+                lng: 78.1567,
+                rating: 3.5,
+                cleanliness: 3.6,
+                safety: 3.4,
+                facilities: {
+                    runningWater: true,
+                    lights: true,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 29,
+                lastReviewed: "2 days ago"
+            },
+            {
+                id: 24,
+                name: "Yagappa Park Anna Nagar",
+                area: "Anna Nagar",
+                lat: 9.9234,
+                lng: 78.1456,
+                rating: 3.2,
+                cleanliness: 3.3,
+                safety: 3.1,
+                facilities: {
+                    runningWater: true,
+                    lights: false,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 22,
+                lastReviewed: "3 days ago"
+            },
+            {
+                id: 25,
+                name: "Teppakulam Tank Bund",
+                area: "Teppakulam",
+                lat: 9.9078,
+                lng: 78.1356,
+                rating: 2.9,
+                cleanliness: 3.0,
+                safety: 2.8,
+                facilities: {
+                    runningWater: false,
+                    lights: true,
+                    doorLock: false,
+                    sanitaryPads: false,
+                    attendant: false,
+                    wheelchair: false
+                },
+                reviews: 16,
+                lastReviewed: "1 week ago"
+            }
+        ];
+        // Initialize the app
+        function initApp() {
+            initMap();
+            setupEventListeners();
+            loadStoredData();
+        }
+        
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([9.9252, 78.1198], 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            addToiletMarkers();
+        }
+        
+        // Add toilet markers to map
+        function addToiletMarkers() {
+            toiletData.forEach(toilet => {
+                const pinColor = getPinColor(toilet.rating);
+                const marker = L.marker([toilet.lat, toilet.lng], {
+                    icon: createCustomIcon(pinColor)
+                }).addTo(map);
+                
+                marker.bindPopup(createPopupContent(toilet));
+                marker.toiletId = toilet.id;
+                markers.push(marker);
+            });
+        }
+        
+        // Get pin color based on rating
+        function getPinColor(rating) {
+            if (rating >= 4.0) return '#10b981'; // Green
+            if (rating >= 2.5) return '#f59e0b'; // Yellow
+            return '#ef4444'; // Red
+        }
+        
+        // Create custom icon
+        function createCustomIcon(color) {
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+        }
+        
+        // Create popup content
+        function createPopupContent(toilet) {
+            const safetyBadge = getSafetyBadge(toilet.safety);
+            const aiTip = generateAITip(toilet);
+            
+            return `
+                <div class="popup-content">
+                    <div class="toilet-name">${toilet.name}</div>
+                    <div class="rating-stars">
+                        <span class="stars">${generateStars(toilet.rating)}</span>
+                        <span class="rating-text">${toilet.rating.toFixed(1)} (${toilet.reviews} reviews)</span>
+                    </div>
+                    <div class="scores">
+                        <div class="score-item">
+                            <div class="score-value">${toilet.cleanliness.toFixed(1)}</div>
+                            <div class="score-label" data-en="Cleanliness" data-ta="சுத்தம்">Cleanliness</div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-value">${toilet.safety.toFixed(1)}</div>
+                            <div class="score-label" data-en="Safety" data-ta="பாதுகாப்பு">Safety</div>
+                        </div>
+                    </div>
+                    <div class="facilities">
+                        <div class="facilities-title" data-en="Facilities" data-ta="வசதிகள்">Facilities</div>
+                        <div class="facility-badges">
+                            ${generateFacilityBadges(toilet.facilities)}
+                        </div>
+                    </div>
+                    <div class="safety-badge ${safetyBadge.class}">${safetyBadge.text}</div>
+                    <div class="review-info">Last reviewed: ${toilet.lastReviewed}</div>
+                    <button class="btn" onclick="openRateModal(${toilet.id})" style="margin-top: 0.5rem; padding: 0.5rem;" data-en="Rate this toilet" data-ta="மதிப்பீடு செய்க">Rate this toilet</button>
+                    <div class="ai-tip">${aiTip}</div>
+                </div>
+            `;
+        }
+        
+        // Generate stars display
+        function generateStars(rating) {
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 >= 0.5;
+            let stars = '';
+            
+            for (let i = 0; i < fullStars; i++) {
+                stars += '★';
+            }
+            if (hasHalfStar) {
+                stars += '☆';
+            }
+            for (let i = fullStars + (hasHalfStar ? 1 : 0); i < 5; i++) {
+                stars += '☆';
+            }
+            
+            return stars;
+        }
+        
+        // Generate facility badges
+        function generateFacilityBadges(facilities) {
+            const facilityNames = {
+                runningWater: { en: 'Water', ta: 'நீர்' },
+                lights: { en: 'Lights', ta: 'விளக்கு' },
+                doorLock: { en: 'Lock', ta: 'பூட்டு' },
+                sanitaryPads: { en: 'Pads', ta: 'பேட்' },
+                attendant: { en: 'Attendant', ta: 'பராமரிப்பு' },
+                wheelchair: { en: 'Wheelchair', ta: 'சக்கர நாற்காலி' }
+            };
+            
+            let badges = '';
+            for (const [key, available] of Object.entries(facilities)) {
+                const name = facilityNames[key][currentLanguage];
+                const badgeClass = available ? 'facility-yes' : 'facility-no';
+                const text = available ? 'YES' : 'NO';
+                badges += `<span class="facility-badge ${badgeClass}">${name}: ${text}</span>`;
+            }
+            
+            return badges;
+        }
+        
+        // Get safety badge
+        function getSafetyBadge(safetyScore) {
+            if (safetyScore >= 4.0) {
+                return {
+                    class: 'safety-safe',
+                    text: currentLanguage === 'en' ? 'Women Verified Safe' : 'பெண்களால் சரிபார்க்கப்பட்டது'
+                };
+            } else if (safetyScore >= 3.0) {
+                return {
+                    class: 'safety-caution',
+                    text: currentLanguage === 'en' ? 'Needs Caution' : 'எச்சரிக்கை தேவை'
+                };
+            } else {
+                return {
+                    class: 'safety-avoid',
+                    text: currentLanguage === 'en' ? 'Avoid — Reported Unsafe' : 'தவிர்க்கவும் — பாதுকாப்பற்றது'
+                };
+            }
+        }
+        
+        // Generate AI tip
+        function generateAITip(toilet) {
+            const hour = new Date().getHours();
+            const tips = {
+                high: [
+                    "Usually clean in mornings — good time to visit!",
+                    "Well-maintained facility — recommended for use.",
+                    "Popular among women — generally safe and clean."
+                ],
+                medium: [
+                    "Evenings get crowded, plan earlier.",
+                    "Check facilities before use — conditions vary.",
+                    "Better during daytime hours."
+                ],
+                low: [
+                    "Avoid at night — not well lit.",
+                    "Consider alternative options nearby.",
+                    "Use only if absolutely necessary."
+                ]
+            };
+            
+            let category = 'medium';
+            if (toilet.rating >= 4.0) category = 'high';
+            else if (toilet.rating < 2.5) category = 'low';
+            
+            const tipArray = tips[category];
+            return tipArray[Math.floor(Math.random() * tipArray.length)];
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            // Search functionality
+            document.getElementById('searchBox').addEventListener('input', handleSearch);
+            
+            // Star rating functionality
+            setupStarRating('cleanlinessRating');
+            setupStarRating('safetyRating');
+        }
+        
+        // Handle search
+        function handleSearch(e) {
+            const query = e.target.value.toLowerCase();
+            
+            if (query === '') {
+                // Show all markers
+                markers.forEach(marker => {
+                    marker.addTo(map);
+                });
+                return;
+            }
+            
+            let foundMarkers = [];
+            
+            markers.forEach(marker => {
+                const toilet = toiletData.find(t => t.id === marker.toiletId);
+                const searchText = `${toilet.name} ${toilet.area}`.toLowerCase();
+                
+                if (searchText.includes(query)) {
+                    marker.addTo(map);
+                    foundMarkers.push(marker);
+                } else {
+                    map.removeLayer(marker);
+                }
+            });
+            
+            if (foundMarkers.length === 0) {
+                // Show no results message
+                console.log('No toilets found near this area');
+            } else if (foundMarkers.length === 1) {
+                // Center on single result
+                const toilet = toiletData.find(t => t.id === foundMarkers[0].toiletId);
+                map.setView([toilet.lat, toilet.lng], 15);
+            }
+        }
+        
+        // Setup star rating
+        function setupStarRating(containerId) {
+            const container = document.getElementById(containerId);
+            const stars = container.querySelectorAll('.star');
+            
+            stars.forEach((star, index) => {
+                star.addEventListener('click', () => {
+                    const rating = index + 1;
+                    container.dataset.rating = rating;
+                    
+                    stars.forEach((s, i) => {
+                        if (i < rating) {
+                            s.classList.add('active');
+                        } else {
+                            s.classList.remove('active');
+                        }
+                    });
+                });
+            });
+        }
+        
+        // Tab navigation
+        function showTab(tabName) {
+            currentTab = tabName;
+            
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.nav-item').classList.add('active');
+            
+            // Handle tab content (for now just map is visible)
+            if (tabName === 'rate') {
+                openRateModal();
+            } else if (tabName === 'community') {
+                openAddToiletModal();
+            }
+        }
+        
+        // Modal functions
+        function openRateModal(toiletId = null) {
+            selectedToiletId = toiletId;
+            document.getElementById('rateModal').style.display = 'block';
+            document.getElementById('rateSuccess').classList.add('hidden');
+        }
+        
+        function openAddToiletModal() {
+            document.getElementById('addToiletModal').style.display = 'block';
+            document.getElementById('addSuccess').classList.add('hidden');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Submit rating
+        function submitRating() {
+            const cleanlinessRating = document.getElementById('cleanlinessRating').dataset.rating || 0;
+            const safetyRating = document.getElementById('safetyRating').dataset.rating || 0;
+            const comments = document.getElementById('rateComments').value;
+            
+            if (cleanlinessRating === 0 || safetyRating === 0) {
+                alert('Please provide both cleanliness and safety ratings');
+                return;
+            }
+            
+            // Get facility checkboxes
+            const facilities = {
+                runningWater: document.getElementById('runningWater').checked,
+                lights: document.getElementById('lights').checked,
+                doorLock: document.getElementById('doorLock').checked,
+                sanitaryPads: document.getElementById('sanitaryPads').checked,
+                attendant: document.getElementById('attendant').checked,
+                wheelchair: document.getElementById('wheelchair').checked
+            };
+            
+            // Store in localStorage
+            const rating = {
+                toiletId: selectedToiletId,
+                cleanliness: parseInt(cleanlinessRating),
+                safety: parseInt(safetyRating),
+                facilities: facilities,
+                comments: comments,
+                timestamp: new Date().toISOString()
+            };
+            
+            let storedRatings = JSON.parse(localStorage.getItem('sheFind_ratings') || '[]');
+            storedRatings.push(rating);
+            localStorage.setItem('sheFind_ratings', JSON.stringify(storedRatings));
+            
+            // Show success message
+            document.getElementById('rateSuccess').classList.remove('hidden');
+            
+            // Reset form
+            setTimeout(() => {
+                resetRatingForm();
+                closeModal('rateModal');
+            }, 2000);
+        }
+        
+        // Submit new toilet
+        function submitNewToilet() {
+            const name = document.getElementById('toiletName').value;
+            const area = document.getElementById('toiletArea').value;
+            
+            if (!name || !area) {
+                alert('Please fill in toilet name and area');
+                return;
+            }
+            
+            const facilities = {
+                runningWater: document.getElementById('addRunningWater').checked,
+                lights: document.getElementById('addLights').checked,
+                doorLock: document.getElementById('addDoorLock').checked,
+                attendant: document.getElementById('addAttendant').checked
+            };
+            
+            // Store in localStorage
+            const newToilet = {
+                name: name,
+                area: area,
+                facilities: facilities,
+                timestamp: new Date().toISOString()
+            };
+            
+            let storedToilets = JSON.parse(localStorage.getItem('sheFind_newToilets') || '[]');
+            storedToilets.push(newToilet);
+            localStorage.setItem('sheFind_newToilets', JSON.stringify(storedToilets));
+            
+            // Show success message
+            document.getElementById('addSuccess').classList.remove('hidden');
+            
+            // Reset form
+            setTimeout(() => {
+                resetAddToiletForm();
+                closeModal('addToiletModal');
+            }, 2000);
+        }
+        
+        // Reset forms
+        function resetRatingForm() {
+            document.getElementById('cleanlinessRating').dataset.rating = '';
+            document.getElementById('safetyRating').dataset.rating = '';
+            document.querySelectorAll('.star').forEach(star => star.classList.remove('active'));
+            document.querySelectorAll('#rateModal input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.getElementById('rateComments').value = '';
+        }
+        
+        function resetAddToiletForm() {
+            document.getElementById('toiletName').value = '';
+            document.getElementById('toiletArea').value = '';
+            document.querySelectorAll('#addToiletModal input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+        
+        // Language toggle
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'ta' : 'en';
+            
+            // Update toggle button
+            const toggleBtn = document.querySelector('.lang-toggle');
+            toggleBtn.textContent = currentLanguage === 'en' ? 'தமிழ்' : 'English';
+            
+            // Update all translatable elements
+            document.querySelectorAll('[data-en]').forEach(element => {
+                const text = element.getAttribute(`data-${currentLanguage}`);
+                if (text) {
+                    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                        element.placeholder = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+            
+            // Update map popups
+            markers.forEach(marker => {
+                const toilet = toiletData.find(t => t.id === marker.toiletId);
+                marker.setPopupContent(createPopupContent(toilet));
+            });
+        }
+        
+        // Load stored data
+        function loadStoredData() {
+            // Load ratings from localStorage
+            const storedRatings = JSON.parse(localStorage.getItem('sheFind_ratings') || '[]');
+            console.log(`Loaded ${storedRatings.length} stored ratings`);
+            
+            // Load new toilets from localStorage
+            const storedToilets = JSON.parse(localStorage.getItem('sheFind_newToilets') || '[]');
+            console.log(`Loaded ${storedToilets.length} community-added toilets`);
+        }
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+        
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

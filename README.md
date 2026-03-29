@@ -29,6 +29,6 @@ Built for the AWS User Group Madurai — March Skill Sprint: Build for Her 💜
 
 ## How to Run
 1. Download or clone this repository
-2. Open `shefind.html` in any browser
+2. Open `file:///C:/Users/ELCOT/Desktop/SHE%20FIND/shefind.html` in any browser
 3. That's it — no installation needed!
 
